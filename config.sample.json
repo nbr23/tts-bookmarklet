@@ -1,0 +1,17 @@
+{
+	"defaults": {
+		"apiUrl": "https://tts.example.com",
+		"speed": 1.0,
+		"outputFormat": "mp3",
+		"selector": "p, li, blockquote",
+		"minChars": 20
+	},
+	"profiles": {
+		"en": {
+			"voice": "en_US-amy-low"
+		},
+		"fr": {
+			"voice": "fr_FR-siwis-medium"
+		}
+	}
+}
