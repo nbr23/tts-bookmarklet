@@ -10,7 +10,8 @@
 
 	var audioCache = new WeakMap();
 	var textCache = new WeakMap();
-	var currentAudio = null;
+	var audioContext = null;
+	var currentSource = null;
 	var currentButton = null;
 
 	// Remove widgets from a previous run so re-clicking the bookmarklet doesn't double-inject
@@ -24,34 +25,48 @@
 		button.title = title || '';
 	}
 
+	// Must be called from a click handler: browsers only let an AudioContext
+	// start (or resume) inside a user gesture.
+	function getAudioContext() {
+		if (!audioContext) {
+			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		}
+		if (audioContext.state === 'suspended') audioContext.resume();
+		return audioContext;
+	}
+
 	function stopCurrent() {
-		if (currentAudio) {
-			currentAudio.pause();
-			currentAudio = null;
+		if (currentSource) {
+			var source = currentSource;
+			currentSource = null;
+			source.onended = null;
+			source.stop();
 		}
 		if (currentButton) {
-			setButtonState(currentButton, 'idle');
+			setButtonState(currentButton, 'idle', 'Listen');
 			currentButton = null;
 		}
 	}
 
-	function playAudio(url, button) {
-		var audio = new Audio(url);
-		currentAudio = audio;
-		currentButton = button;
-		setButtonState(button, 'playing');
-
-		audio.addEventListener('ended', function () {
-			setButtonState(button, 'idle');
-			if (currentAudio === audio) {
-				currentAudio = null;
+	// Playback goes through the Web Audio API rather than an <audio> element:
+	// a blob: URL is a media load, so a strict media-src CSP (claude.ai, among
+	// others) blocks it. Decoded audio buffers aren't subject to media-src.
+	function playAudio(buffer, button) {
+		var source = getAudioContext().createBufferSource();
+		source.buffer = buffer;
+		source.connect(audioContext.destination);
+		source.onended = function () {
+			if (currentSource === source) {
+				currentSource = null;
 				currentButton = null;
 			}
-		});
+			setButtonState(button, 'idle', 'Listen');
+		};
 
-		audio.play().catch(function (err) {
-			setButtonState(button, 'error', 'Playback failed: ' + err.message);
-		});
+		currentSource = source;
+		currentButton = button;
+		setButtonState(button, 'playing');
+		source.start();
 	}
 
 	var REQUEST_TIMEOUT_MS = 20000;
@@ -115,10 +130,11 @@
 				return res.arrayBuffer();
 			})
 			.then(function (buf) {
-				var mime = CONFIG.outputFormat === 'mp3' ? 'audio/mpeg' : 'audio/wav';
-				var url = URL.createObjectURL(new Blob([buf], { type: mime }));
-				audioCache.set(el, url);
-				playAudio(url, button);
+				return getAudioContext().decodeAudioData(buf);
+			})
+			.then(function (buffer) {
+				audioCache.set(el, buffer);
+				playAudio(buffer, button);
 			})
 			.catch(function (err) {
 				if (timedOut) {
@@ -153,10 +169,11 @@
 		}
 
 		stopCurrent();
+		getAudioContext();
 
-		var cachedUrl = audioCache.get(el);
-		if (cachedUrl) {
-			playAudio(cachedUrl, button);
+		var cachedBuffer = audioCache.get(el);
+		if (cachedBuffer) {
+			playAudio(cachedBuffer, button);
 		} else {
 			requestAudio(el, button);
 		}
