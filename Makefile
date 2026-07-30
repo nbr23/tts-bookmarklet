@@ -16,11 +16,6 @@ build:
 	fi
 
 dist:
-	@test -n "$(PROFILE)" || (echo "Usage: make dist PROFILE=<name>" && exit 1)
-	@mkdir -p dist
-	node build.js $(PROFILE) > dist/$(PROFILE).js
-
-dist-all:
 	@mkdir -p dist
 	@for p in $$(node -e "console.log(Object.keys(require('./config.json').profiles).join('\n'))"); do \
 		echo "Building $$p..."; \

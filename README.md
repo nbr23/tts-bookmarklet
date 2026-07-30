@@ -34,7 +34,6 @@ Edit `config.json` (gitignored, per-user): a `defaults` object plus a `profiles`
 
 ```sh
 make build PROFILE=en    # copies the "en" bookmarklet to your clipboard
-make dist PROFILE=fr     # writes dist/fr.js
-make dist-all            # builds every profile into dist/<profile>.js
+make dist                 # builds every profile into dist/<profile>.js
 make clean               # removes dist/
 ```
