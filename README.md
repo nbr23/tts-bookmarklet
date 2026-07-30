@@ -6,6 +6,11 @@ Bookmarklet that adds a "listen" button to paragraphs/list items/blockquotes on 
 
 gopipertts must be reachable cross-origin: put it behind a reverse proxy that adds `Access-Control-Allow-Origin`, and serve it over HTTPS if used on HTTPS pages.
 
+## CORS/CSP
+
+- **Normal case**: `fetch`es `POST /api/tts`, plays the result inline via the button.
+- **Blocked case**: if the page's CORS or CSP policy blocks that `fetch`, it falls back to opening a `GET /api/tts?...` URL in a new tab instead. The first click on a blocked page may get its popup silently blocked (browsers only allow `window.open` reliably from a direct click); just click "listen" again and it opens.
+
 ## Configure
 
 ```sh

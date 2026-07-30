@@ -56,7 +56,40 @@
 
 	var REQUEST_TIMEOUT_MS = 20000;
 
+	// Once a fetch to CONFIG.apiUrl fails with a client-side network error (CORS
+	// or CSP connect-src - fetch's TypeError doesn't distinguish them), remember
+	// it so later clicks skip straight to the new-tab fallback below instead of
+	// retrying a request that's guaranteed to fail again.
+	var apiUnreachable = false;
+
+	// A blocked fetch means this page's browser-side policy won't allow the
+	// request at all - not fixable from here. A freshly opened tab is a separate
+	// document with its own (usually unrestricted) policy, so a direct GET
+	// request there lets audio play anyway. window.open() only survives popup
+	// blockers when called synchronously from the click handler, which is why
+	// this same function is called directly from onWidgetClick once apiUnreachable
+	// is known, rather than from an async fetch callback.
+	function openInNewTab(text) {
+		var params = new URLSearchParams({
+			text: text,
+			voice: CONFIG.voice,
+			speed: CONFIG.speed,
+			outputFormat: CONFIG.outputFormat
+		});
+		return window.open(CONFIG.apiUrl + '/api/tts?' + params.toString(), '_blank');
+	}
+
 	function requestAudio(el, button) {
+		var text = textCache.get(el);
+
+		if (apiUnreachable) {
+			var opened = openInNewTab(text);
+			setButtonState(button, 'idle', opened
+				? 'Opened in a new tab (blocked by CORS/CSP on this page)'
+				: 'Blocked by CORS/CSP on this page - allow popups to hear it in a new tab');
+			return;
+		}
+
 		setButtonState(button, 'loading');
 
 		var controller = new AbortController();
@@ -71,7 +104,7 @@
 			headers: { 'Content-Type': 'application/json' },
 			signal: controller.signal,
 			body: JSON.stringify({
-				text: textCache.get(el),
+				text: text,
 				voice: CONFIG.voice,
 				speed: CONFIG.speed,
 				outputFormat: CONFIG.outputFormat
@@ -88,15 +121,19 @@
 				playAudio(url, button);
 			})
 			.catch(function (err) {
-				var msg;
 				if (timedOut) {
-					msg = 'Request timed out after ' + (REQUEST_TIMEOUT_MS / 1000) + 's - check your TTS server';
-				} else if (err instanceof TypeError) {
-					msg = 'Request failed - check CORS headers and HTTPS/mixed-content on ' + CONFIG.apiUrl;
-				} else {
-					msg = 'TTS request failed: ' + err.message;
+					setButtonState(button, 'error', 'Request timed out after ' + (REQUEST_TIMEOUT_MS / 1000) + 's - check your TTS server');
+					return;
 				}
-				setButtonState(button, 'error', msg);
+				if (err instanceof TypeError) {
+					apiUnreachable = true;
+					var opened = openInNewTab(text);
+					setButtonState(button, 'idle', opened
+						? 'Opened in a new tab (blocked by CORS/CSP on this page)'
+						: 'Blocked by CORS/CSP on this page - click "listen" again to open in a new tab');
+					return;
+				}
+				setButtonState(button, 'error', 'TTS request failed: ' + err.message);
 			})
 			.finally(function () {
 				clearTimeout(timer);
