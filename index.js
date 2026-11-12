@@ -69,7 +69,7 @@
 		source.start();
 	}
 
-	var REQUEST_TIMEOUT_MS = 20000;
+	var REQUEST_TIMEOUT_MS = (CONFIG.timeoutSeconds || 20) * 1000;
 
 	// Once a fetch to CONFIG.apiUrl fails with a client-side network error (CORS
 	// or CSP connect-src - fetch's TypeError doesn't distinguish them), remember

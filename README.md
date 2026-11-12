@@ -28,6 +28,8 @@ cp config.sample.json config.json
 
 Edit `config.json` (gitignored, per-user): a `defaults` object plus a `profiles` map, merged per profile.
 
+`timeoutSeconds` (default 20) caps each speech request. Raise it for servers that scale to zero and hold the first request while starting up.
+
 ```json
 {
 	"defaults": {
@@ -40,7 +42,7 @@ Edit `config.json` (gitignored, per-user): a `defaults` object plus a `profiles`
 	"profiles": {
 		"en": { "voice": "en_US-amy-low" },
 		"fr": { "voice": "fr_FR-siwis-medium" },
-		"phonon": { "provider": "openai", "apiUrl": "https://<your-phonon-host>" }
+		"phonon": { "provider": "openai", "apiUrl": "https://<your-phonon-host>", "timeoutSeconds": 330 }
 	}
 }
 ```
