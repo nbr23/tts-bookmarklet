@@ -12,6 +12,10 @@
 		},
 		"fr": {
 			"voice": "fr_FR-siwis-medium"
+		},
+		"phonon": {
+			"provider": "openai",
+			"apiUrl": "https://<your-phonon-host>"
 		}
 	}
 }

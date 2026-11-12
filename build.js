@@ -18,6 +18,12 @@ if (!merged.apiUrl) {
 	process.exit(1);
 }
 
+const providers = ['gopipertts', 'openai'];
+if (merged.provider !== undefined && !providers.includes(merged.provider)) {
+	console.error(`Profile "${profile}" has unknown provider "${merged.provider}" (expected one of: ${providers.join(', ')}).`);
+	process.exit(1);
+}
+
 const template = fs.readFileSync(path.join(__dirname, 'index.js'), 'utf8');
 
 // Strip comments/whitespace from the template BEFORE injecting the config

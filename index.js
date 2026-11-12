@@ -94,14 +94,44 @@
 		return window.open(CONFIG.apiUrl + '/api/tts?' + params.toString(), '_blank');
 	}
 
+	// OpenAI-compatible speech endpoints only accept a JSON POST, so there is no
+	// URL a new tab could open.
+	var canOpenInNewTab = CONFIG.provider !== 'openai';
+
+	function handleBlocked(text, button, popupBlockedTitle) {
+		if (!canOpenInNewTab) {
+			setButtonState(button, 'error', 'Blocked by CORS/CSP on this page');
+			return;
+		}
+		var opened = openInNewTab(text);
+		setButtonState(button, 'idle', opened
+			? 'Opened in a new tab (blocked by CORS/CSP on this page)'
+			: popupBlockedTitle);
+	}
+
+	function buildRequest(text) {
+		if (CONFIG.provider === 'openai') {
+			var body = { input: text, response_format: CONFIG.outputFormat };
+			if (CONFIG.voice) body.voice = CONFIG.voice;
+			if (CONFIG.speed) body.speed = CONFIG.speed;
+			return { url: CONFIG.apiUrl + '/v1/audio/speech', body: body };
+		}
+		return {
+			url: CONFIG.apiUrl + '/api/tts',
+			body: {
+				text: text,
+				voice: CONFIG.voice,
+				speed: CONFIG.speed,
+				outputFormat: CONFIG.outputFormat
+			}
+		};
+	}
+
 	function requestAudio(el, button) {
 		var text = textCache.get(el);
 
 		if (apiUnreachable) {
-			var opened = openInNewTab(text);
-			setButtonState(button, 'idle', opened
-				? 'Opened in a new tab (blocked by CORS/CSP on this page)'
-				: 'Blocked by CORS/CSP on this page - allow popups to hear it in a new tab');
+			handleBlocked(text, button, 'Blocked by CORS/CSP on this page - allow popups to hear it in a new tab');
 			return;
 		}
 
@@ -114,16 +144,13 @@
 			controller.abort();
 		}, REQUEST_TIMEOUT_MS);
 
-		fetch(CONFIG.apiUrl + '/api/tts', {
+		var request = buildRequest(text);
+
+		fetch(request.url, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			signal: controller.signal,
-			body: JSON.stringify({
-				text: text,
-				voice: CONFIG.voice,
-				speed: CONFIG.speed,
-				outputFormat: CONFIG.outputFormat
-			})
+			body: JSON.stringify(request.body)
 		})
 			.then(function (res) {
 				if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -143,10 +170,7 @@
 				}
 				if (err instanceof TypeError) {
 					apiUnreachable = true;
-					var opened = openInNewTab(text);
-					setButtonState(button, 'idle', opened
-						? 'Opened in a new tab (blocked by CORS/CSP on this page)'
-						: 'Blocked by CORS/CSP on this page - click "listen" again to open in a new tab');
+					handleBlocked(text, button, 'Blocked by CORS/CSP on this page - click "listen" again to open in a new tab');
 					return;
 				}
 				setButtonState(button, 'error', 'TTS request failed: ' + err.message);
