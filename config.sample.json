@@ -16,7 +16,8 @@
 		"phonon": {
 			"provider": "openai",
 			"apiUrl": "https://<your-phonon-host>",
-			"timeoutSeconds": 330
+			"timeoutSeconds": 330,
+			"fallback": "en"
 		}
 	}
 }

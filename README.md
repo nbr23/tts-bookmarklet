@@ -18,7 +18,8 @@ Set `provider` in `defaults` or per profile; `apiUrl` is always the server's bas
 ## CORS/CSP
 
 - **Normal case**: `fetch`es the provider's endpoint, plays the result inline via the button.
-- **Blocked case** (gopipertts only): if the page's CORS or CSP policy blocks that `fetch`, it falls back to opening a `GET /api/tts?...` URL in a new tab instead. The first click on a blocked page may get its popup silently blocked (browsers only allow `window.open` reliably from a direct click); just click "listen" again and it opens. The `openai` provider has no GET endpoint, so on such pages the button shows an error instead.
+- **Blocked case** (gopipertts only): if the page's CORS or CSP policy blocks that `fetch`, it falls back to opening a `GET /api/tts?...` URL in a new tab instead. The first click on a blocked page may get its popup silently blocked (browsers only allow `window.open` reliably from a direct click); just click "listen" again and it opens. The `openai` provider has no GET endpoint, so on such pages the button shows an error instead, unless the profile has a fallback.
+- **Fallback**: set `"fallback": "<profile>"` on a profile (e.g. an `openai` profile pointing at a gopipertts one) to retry a blocked request against that profile. If the fallback is blocked too, its own new-tab behaviour applies. Timeouts and HTTP errors don't trigger it, and a fallback profile can't have a fallback of its own.
 
 ## Configure
 
@@ -42,7 +43,7 @@ Edit `config.json` (gitignored, per-user): a `defaults` object plus a `profiles`
 	"profiles": {
 		"en": { "voice": "en_US-amy-low" },
 		"fr": { "voice": "fr_FR-siwis-medium" },
-		"phonon": { "provider": "openai", "apiUrl": "https://<your-phonon-host>", "timeoutSeconds": 330 }
+		"phonon": { "provider": "openai", "apiUrl": "https://<your-phonon-host>", "timeoutSeconds": 330, "fallback": "en" }
 	}
 }
 ```
