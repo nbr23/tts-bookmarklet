@@ -13,7 +13,13 @@ Set `provider` in `defaults` or per profile; `apiUrl` is always the server's bas
 | `provider`             | Request                                                            |
 | ---------------------- | ------------------------------------------------------------------ |
 | `gopipertts` (default) | `POST /api/tts` with `text`, `voice`, `speed`, `outputFormat`      |
-| `openai`               | `POST /v1/audio/speech` with `input`, `response_format` (from `outputFormat`), and `voice`/`speed` when set |
+| `openai`               | `POST /v1/audio/speech` with `input`, `response_format` (from `outputFormat`), and `voice`/`speed`/`model`/`instructions` when set |
+
+`model` and `instructions` are optional and left out of the request when unset: set them for servers that require a model name or accept a speaking-style prompt.
+
+### Authentication
+
+Endpoints that require an API key are not supported directly, by design: the bookmarklet runs inside the page it is clicked on, so its code and the requests it makes are visible to that page, and a key baked into it would leak to every site it is used on. To reach an authenticated API, point `apiUrl` at a reverse proxy you control that injects the credentials (and the CORS header above) server-side.
 
 ## CORS/CSP
 
@@ -43,7 +49,8 @@ Edit `config.json` (gitignored, per-user): a `defaults` object plus a `profiles`
 	"profiles": {
 		"en": { "voice": "en_US-amy-low" },
 		"fr": { "voice": "fr_FR-siwis-medium" },
-		"phonon": { "provider": "openai", "apiUrl": "https://<your-phonon-host>", "timeoutSeconds": 330, "fallback": "en" }
+		"phonon": { "provider": "openai", "apiUrl": "https://<your-phonon-host>", "timeoutSeconds": 330, "fallback": "en" },
+		"expressive": { "provider": "openai", "apiUrl": "https://<your-speech-proxy>", "model": "gpt-4o-mini-tts", "voice": "alloy", "instructions": "Read in a calm, even tone." }
 	}
 }
 ```

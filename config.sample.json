@@ -18,6 +18,13 @@
 			"apiUrl": "https://<your-phonon-host>",
 			"timeoutSeconds": 330,
 			"fallback": "en"
+		},
+		"expressive": {
+			"provider": "openai",
+			"apiUrl": "https://<your-speech-proxy>",
+			"model": "gpt-4o-mini-tts",
+			"voice": "alloy",
+			"instructions": "Read in a calm, even tone."
 		}
 	}
 }

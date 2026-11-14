@@ -122,6 +122,8 @@
 			var body = { input: text, response_format: server.outputFormat };
 			if (server.voice) body.voice = server.voice;
 			if (server.speed) body.speed = server.speed;
+			if (server.model) body.model = server.model;
+			if (server.instructions) body.instructions = server.instructions;
 			return { url: server.apiUrl + '/v1/audio/speech', body: body };
 		}
 		return {
@@ -133,6 +135,18 @@
 				outputFormat: server.outputFormat
 			}
 		};
+	}
+
+	function httpError(res) {
+		var status = 'HTTP ' + res.status;
+		return res.json()
+			.then(function (data) {
+				return data.error.message;
+			})
+			.catch(function () {})
+			.then(function (message) {
+				return new Error(typeof message === 'string' && message ? status + ': ' + message : status);
+			});
 	}
 
 	function requestAudio(el, button) {
@@ -167,7 +181,11 @@
 			body: JSON.stringify(request.body)
 		})
 			.then(function (res) {
-				if (!res.ok) throw new Error('HTTP ' + res.status);
+				if (!res.ok) {
+					return httpError(res).then(function (err) {
+						throw err;
+					});
+				}
 				return res.arrayBuffer();
 			})
 			.then(function (buf) {
